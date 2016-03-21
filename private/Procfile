@@ -1,0 +1,3 @@
+authsvc: PYTHONUNBUFFERED=true /Users/abesto/.prezi/please/src/repos/authservice.sh run_service
+media: PYTHONUNBUFFERED=true /Users/abesto/.prezi/please/src/repos/media.sh run_service
+haproxy_8000: PYTHONUNBUFFERED=true /Users/abesto/.prezi/please/src/config/haproxy.sh run_service

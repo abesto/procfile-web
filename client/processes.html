@@ -1,0 +1,45 @@
+<template name="Processes">
+    <div class="container-fluid">
+        <table class="table table-condensed table-hover">
+            <thead>
+                <tr>
+                    <th>PID</th>
+                    <th>Name</th>
+                    <th>Started</th>
+                    <th>Status</th>
+                    <th>%CPU</th>
+                    <th>Memory</th>
+                    <th>
+                        <button class="btn btn-default btn-sm btn-success start-all" data-name="{{name}}">start all</button>
+                        <div class="btn-group">
+                            <button class="btn btn-default btn-sm btn-danger kill-all" data-signal="SIGTERM">kill all</button>
+                            <button class="btn btn-default btn-sm btn-danger kill-all" data-signal="SIGKILL">kill -9 all</button>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each processes}}
+                    <tr>
+                        <td>{{ pid }}</td>
+                        <td>{{ name }}</td>
+                        <td>{{ livestampOrEmpty started }}</td>
+                        <td>{{ status }}</td>
+                        <td>{{ round cpu }}</td>
+                        <td>{{ megabytes memory }}</td>
+                        <td>
+                            <div class="btn-group">
+                                {{#if isRunning status }}
+                                    <button class="btn btn-default btn-sm btn-danger kill" data-name="{{name}}" data-signal="SIGTERM">kill</button>
+                                    <button class="btn btn-default btn-sm btn-danger kill" data-name="{{name}}" data-signal="SIGKILL">kill -9</button>
+                                {{else}}
+                                    <button class="btn btn-default btn-sm btn-success start" data-name="{{name}}">start</button>
+                                {{/if}}
+                            </div>
+                        </td>
+                    </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+</template>

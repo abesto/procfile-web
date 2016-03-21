@@ -1,0 +1,25 @@
+table.logs {
+    white-space: pre;
+    font-family: monospace;
+}
+
+table.logs td {
+    padding-left: 7px;
+    padding-right: 7px;
+}
+
+table.logs tr:hover {
+    background-color: lightgray;
+}
+
+table.logs .timestamp, table.logs .channel {
+    color: gray;
+}
+
+table.logs td.message {
+    border-left: 1px solid silver;
+}
+
+table.logs .app {
+    font-weight: bold;
+}
