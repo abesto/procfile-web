@@ -14,9 +14,11 @@ recordLog = Meteor.bindEnvironment(function recordLog(app, channel, message) {
 
 tailLogs = function tailLogs(app) {
   _(['stdout', 'stderr']).each(function (channel) {
+    var log = new Logger(app + '.' + channel);
     var file = logfile(app, channel);
     touch.sync(file);
     new Tail(file, {follow: true}).on('line', Meteor.bindEnvironment(function (line) {
+      log.info(line);
       recordLog(app, channel, line);
     }));
   });

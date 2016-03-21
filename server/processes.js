@@ -74,7 +74,6 @@ function updateProcessStats() {
         modifier = {$set: modifier};
         log.trace('updateProcessStats ' + process.name + ' ' + JSON.stringify(modifier));
         if (modifier.$set.status !== process.status) {
-          log.info('process state change: ' + process.name + ' ' + process.status + ' -> ' + modifier.$set.status);
           recordLog('system', 'info', process.name + ' went from ' + process.status + ' to ' + modifier.$set.status);
         }
         Process.update({_id: process._id}, modifier);
@@ -156,7 +155,7 @@ Meteor.methods({
     processOp('process/start ' + name, function (done) {
       fs.createWriteStream(logfile(name, 'stdout'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdOutFd) {
         fs.createWriteStream(logfile(name, 'stderr'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdErrFd) {
-          childProcess = spawn(procfileEntry.cmd, procfileEntry.args, {
+          childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
             env: _.extend(
               {},
               {HOME: process.env.HOME},
