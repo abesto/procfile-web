@@ -1,12 +1,10 @@
 var
-  Future = Npm.require('fibers/future'),
   spawn = Meteor.npmRequire('child_process').spawn,
   fs = Meteor.npmRequire('fs'),
   psList = Meteor.npmRequire('ps-list'),
   psTree = Meteor.npmRequire('ps-tree'),
   usage = Meteor.npmRequire('usage'),
   expandHomeDir = Meteor.npmRequire('expand-home-dir'),
-  processOpsInProgress = 0,
   log = new Logger('server.processes');
 
 function psTreePids(rootPid, callback) {
@@ -44,12 +42,6 @@ function psTreeUsageSum(rootPid, callback) {
 }
 
 function updateProcessStats() {
-  if (processOpsInProgress > 0) {
-    // Someone's doing operations that start / stop processes we'll want to list
-    // Skipping this round of updates to avoid race conditions
-    log.debug('updateProcessStats skip: process ops in progress');
-    return;
-  }
   log.trace('updateProcessStats start');
   psList().then(function (psListData) {
     log.trace('updateProcessStats got_data');
@@ -93,7 +85,10 @@ function registerProcess(name, pid, cb) {
         pid: pid,
         started: new Date()
       }
-    }, cb);
+    }, function () {
+      updateProcessStats();
+      cb();
+    });
 }
 
 Meteor.setInterval(updateProcessStats, 1000);
@@ -101,40 +96,6 @@ Meteor.setInterval(updateProcessStats, 1000);
 Meteor.publish('processes', function () {
   return Process.find();
 });
-
-/**
- * Enter / leave portion of a semaphore. Each time processOp is called, it increments
- * proecssOpsInProgress by one. It passes a "done" callback to its second argument, which,
- * when called, decrements it again. If the done callback is called more than once, an exception
- * is raised. If the done callback is not called within 5 seconds, we time out and pretend
- * it was called anyway.
- */
-function processOp(name, f) {
-  var fut = new Future();
-  processOpsInProgress += 1;
-  log.trace('processOp enter ' + name + ' => ' + processOpsInProgress);
-  var timeout = Meteor.setTimeout(
-    function () {
-      if (fut.isResolved()) {
-        throw 'processOp already resolved ' + name;
-      }
-      processOpsInProgress -= 1;
-      log.trace('processOp timeout ' + name + ' => ' + processOpsInProgress);
-      fut.return();
-    },
-    5000
-  );
-  f(function () {
-    if (fut.isResolved()) {
-      throw 'processOp already resolved ' + name;
-    }
-    Meteor.clearTimeout(timeout);
-    processOpsInProgress -= 1;
-    log.trace('processOp done ' + name + ' => '  + processOpsInProgress);
-    fut.return();
-  });
-  fut.wait();
-}
 
 Meteor.methods({
   'process/start': function(name) {
@@ -152,26 +113,24 @@ Meteor.methods({
       throw new Meteor.Error('already-running', 'Process ' + name + ' is already running.');
     }
 
-    processOp('process/start ' + name, function (done) {
-      fs.createWriteStream(logfile(name, 'stdout'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdOutFd) {
-        fs.createWriteStream(logfile(name, 'stderr'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdErrFd) {
-          childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
-            env: _.extend(
-              {},
-              {HOME: process.env.HOME},
-              procfileEntry.env
-            ),
-            stdio: ['ignore', stdOutFd, stdErrFd],
-            cwd: expandHomeDir('~/.prezi/please')
-          });
-          recordLog('system', 'info', 'Started ' + name);
-          registerProcess(name, childProcess.pid, function () {
-            done();
-          });
-        }));
+    fs.createWriteStream(logfile(name, 'stdout'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdOutFd) {
+      fs.createWriteStream(logfile(name, 'stderr'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdErrFd) {
+        childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
+          env: _.extend(
+            {},
+            {HOME: process.env.HOME},
+            procfileEntry.env
+          ),
+          stdio: ['ignore', stdOutFd, stdErrFd],
+          cwd: expandHomeDir('~/.prezi/please')
+        });
+        recordLog('system', 'info', 'Started ' + name);
+        registerProcess(name, childProcess.pid, function () {
+          done();
+        });
       }));
-    });
-},
+    }));
+  },
 
   'process/kill': function (name, signal) {
     log.info('process/kill ' + name + ' ' + signal);
@@ -186,45 +145,36 @@ Meteor.methods({
       throw new Meteor.Error('not-running', 'Process ' + name + ' is not running.');
     }
 
-    processOp('process/kill ' + name + ' ' + signal, function (done) {
-      psTreePids(procObj.pid, function (err, pids) {
-        log.info('kill ' + name + ' ' + procObj.pid + ' ' + signal);
-        try {
-          process.kill(procObj.pid, signal);
-        } catch(e) {}
-        if (err) {
-          done();
-          throw 'Failed to find children of ' + name + ' pid=' + procObj.pid;
-        }
-        _(pids).forEach(function (pid) {
-          log.info('kill ' + name + ' ' + pid + ' ' + signal);
-          try {
-            process.kill(pid, signal);
-          } catch(e) {}
-        });
-        recordLog('system', 'info', 'Killed ' + name + ' with ' + signal);
+    psTreePids(procObj.pid, function (err, pids) {
+      log.info('kill ' + name + ' ' + procObj.pid + ' ' + signal);
+      try {
+        process.kill(procObj.pid, signal);
+      } catch(e) {}
+      if (err) {
         done();
+        throw 'Failed to find children of ' + name + ' pid=' + procObj.pid;
+      }
+      _(pids).forEach(function (pid) {
+        log.info('kill ' + name + ' ' + pid + ' ' + signal);
+        try {
+          process.kill(pid, signal);
+        } catch(e) {}
       });
+      recordLog('system', 'info', 'Killed ' + name + ' with ' + signal);
     });
   },
 
   'process/start-all': function () {
     log.info('process/start-all');
-    processOp('process/start-all', function (done) {
-      _.each(Process.find({status: {$ne: 'running'}}).fetch(), function (process) {
-        Meteor.call('process/start', process.name);
-      });
-      done();
+    _.each(Process.find({status: {$ne: 'running'}}).fetch(), function (process) {
+      Meteor.call('process/start', process.name);
     });
   },
 
   'process/kill-all': function (signal) {
     log.info('process/kill-all ' + signal);
-    processOp('process/kill-all ' + signal, function (done) {
-      _.each(Process.find({status: 'running'}).fetch(), function (process) {
-        Meteor.call('process/kill', process.name, signal);
-      });
-      done();
+    _.each(Process.find({status: 'running'}).fetch(), function (process) {
+      Meteor.call('process/kill', process.name, signal);
     });
   }
 });
