@@ -48,6 +48,7 @@ function updateProcessStats() {
     Process.find({pid: {$exists: true, $ne: ''}}).forEach(function (process) {
       var psListItem = _.findWhere(psListData, {pid: process.pid});
       psTreeUsageSum(process.pid, Meteor.bindEnvironment(function (usageErr, usageData) {
+        recordLog('system', 'info','usageErr', usageErr+!usageErr+false);
         var modifier;
         if (psListItem && !usageErr) {
           modifier = _.extend(
