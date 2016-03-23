@@ -1,12 +1,24 @@
 var
   fs = Meteor.npmRequire('fs'),
-  procfile = Meteor.npmRequire('procfile-parser');
+  procfile = Meteor.npmRequire('procfile-parser'),
+  expandHomeDir = Meteor.npmRequire('expand-home-dir'),
+  log = new Logger('server.procfile');
 
 function loadProcfile(tag) {
-  var rawContent = Assets.getText('Procfile');
+  var
+    path = Meteor.settings.procfilePath,
+    rawContent;
+  if (path === null) {
+    path = 'assets/Procfile.example';
+    rawContent = Assets.getText('Procfile.example');
+  } else {
+    path = expandHomeDir(path);
+    rawContent = fs.readFileSync(path).toString();
+  }
+  log.info('Loaded Procfile from ' + path);
   return {
     tag: tag,
-    path: 'assets/Procfile',
+    path: path,
     loadedAt: new Date(),
     rawContent: rawContent,
     content: procfile.parse(rawContent)

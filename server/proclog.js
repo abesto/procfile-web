@@ -1,10 +1,11 @@
 var
   Tail = Meteor.npmRequire('tail').Tail,
   touch = Meteor.npmRequire('touch'),
-  logdir = '/tmp/';
+  logdir = Meteor.settings.logDir || '/tmp/',
+  path = Npm.require('path');
 
 logfile = function logfile(app, channel) {
-  return logdir + app + '_' + channel + '.log';
+  return path.join(logdir, app + '_' + channel + '.log');
 };
 
 recordLog = Meteor.bindEnvironment(function recordLog(app, channel, message) {
