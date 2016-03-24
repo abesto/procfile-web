@@ -3,7 +3,7 @@
   "usage": "0.7.1",
   "ps-list": "3.1.0",
   "tail": "1.0.0",
-  "expand-home-dir": "0.0.2",
+  "expand-home-dir": "0.0.3",
   "ps-tree": "1.0.1",
   "touch": "1.0.0"
 }
