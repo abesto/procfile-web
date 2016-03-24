@@ -8,6 +8,7 @@ var
   usage = Meteor.npmRequire('usage'),
   expandHomeDir = Meteor.npmRequire('expand-home-dir'),
   processOpsInProgress = 0,
+  childProcesses = {},
   log = new Logger('server.processes');
 
 
@@ -175,16 +176,20 @@ Meteor.methods({
       recordLog('system', 'info', 'Started ' + name);
       _(['stdout', 'stderr']).each(function (fdName) {
         var log = new Logger(name, fdName);
-        readline.createInterface({
-          input: childProcess[fdName],
-          terminal: false
-        }).on('line', function (line) {
-          log.info(line);
-          recordLog(name, fdName, line);
+        childProcess[fdName].on('data', function(data) {
+          var lines = data.toString().split('\n'), i,
+            lastLine = lines.pop();
+          for (i = 0; i < lines.length; i++) {
+            recordLog(name, fdName, lines[i]);
+          }
+          if (lastLine != '') {
+            recordLog(name, fdName, lastLine, true);
+          }
         });
       });
 
       registerProcess(name, childProcess.pid);
+      childProcesses[name] = childProcess;
       done();
     });
   },
@@ -242,6 +247,13 @@ Meteor.methods({
       });
       done();
     });
+  },
+
+  'process/stdin': function (name, line) {
+    var stream = childProcesses[name].stdin;
+    recordLog(name, 'stdin', line);
+    closeLines(name);
+    stream.write(line + '\n');
   }
 });
 

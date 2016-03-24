@@ -26,6 +26,16 @@ Router.route('/processes', {
 });
 
 Router.route('/logs', {
-  data: function () { return {logs: Proclog.find({}, {sort: {timestamp: 1}})}; },
-  waitOn: function () { return Meteor.subscribe('logs'); }
+  data: function () {
+    return {
+      logs: Proclog.find({}, {sort: {timestamp: 1}}),
+      processes: Process.find({status: 'running'})
+    };
+  },
+  waitOn: function () {
+    return [
+      Meteor.subscribe('logs'),
+      Meteor.subscribe('processes')
+    ];
+  }
 });

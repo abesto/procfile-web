@@ -1,3 +1,7 @@
+.logs-container {
+    overflow: scroll;
+}
+
 table.logs {
     white-space: pre;
     font-family: monospace;

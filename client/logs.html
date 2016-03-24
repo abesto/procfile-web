@@ -1,13 +1,21 @@
 <template name="Logs">
     <div class="container-fluid">
-    <table class="logs">
-        {{#each logs}}
-            <tr>
-                <td class="timestamp">{{fmtTimestamp timestamp}}</td>
-                <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
-                <td class="message">{{message}}</td>
-            </tr>
-        {{/each}}
-    </table>
+        <div class="logs-container">
+            <table class="logs">
+                {{#each logs}}
+                    <tr>
+                        <td class="timestamp">{{fmtTimestamp timestamp}}</td>
+                        <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
+                        <td class="message">{{message}}</td>
+                    </tr>
+                {{/each}}
+            </table>
+        </div>
+        <select class="form-control" id="procname-for-stdin">
+            {{#each processes}}
+                <option>{{name}}</option>
+            {{/each}}
+        </select>
+        <input id="stdin-txt" class="form-control">
     </div>
 </template>
