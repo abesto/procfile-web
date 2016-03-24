@@ -36,7 +36,6 @@ Meteor.startup(function () {
       {name: spec.name},
       {$set: spec}
     );
-    tailLogs(spec.name);
   });
 });
 

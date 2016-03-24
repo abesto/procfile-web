@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "expand-home-dir": {
-      "version": "0.0.2"
+      "version": "0.0.3"
     },
     "procfile-parser": {
       "version": "https://github.com/abesto/procfile-parser/archive/cf1febe159ee42100e23c01c84b4a8890c56f5b4.tar.gz",
@@ -182,22 +182,6 @@
             },
             "stream-combiner": {
               "version": "0.0.4"
-            }
-          }
-        }
-      }
-    },
-    "tail": {
-      "version": "1.0.0"
-    },
-    "touch": {
-      "version": "1.0.0",
-      "dependencies": {
-        "nopt": {
-          "version": "1.0.10",
-          "dependencies": {
-            "abbrev": {
-              "version": "1.0.7"
             }
           }
         }

@@ -1,5 +1,6 @@
 var
   Future = Npm.require('fibers/future'),
+  readline = Npm.require('readline'),
   spawn = Meteor.npmRequire('child_process').spawn,
   fs = Meteor.npmRequire('fs'),
   psList = Meteor.npmRequire('ps-list'),
@@ -9,7 +10,9 @@ var
   processOpsInProgress = 0,
   log = new Logger('server.processes');
 
+
 function psTreePids(rootPid, callback) {
+  log.trace('psTreePids ' + rootPid);
   psTree(rootPid, function (err, children) {
     if (err) {
       log.trace('psTreePids ' + rootPid + ' err: ' + err);
@@ -19,12 +22,13 @@ function psTreePids(rootPid, callback) {
     for (i = 0; i < children.length; i++) {
       pids.push(children[i].PID);
     }
-    log.trace('psTreePids ' + rootPid + ' pids: ' + err);
+    log.trace('psTreePids ' + rootPid + ' pids: ' + pids.join(', '));
     callback(null, pids);
   });
 }
 
 function psTreeUsageSum(rootPid, callback) {
+  log.trace('psTreeUsageSum ' + rootPid);
   psTreePids(rootPid, function (err, pids) {
     if (err) {
       throw 'Failed to get children of ' + rootPid + ': ' + err;
@@ -43,46 +47,52 @@ function psTreeUsageSum(rootPid, callback) {
   });
 }
 
-function updateProcessStats() {
+function updateProcessStats(cb) {
   if (processOpsInProgress > 0) {
     // Someone's doing operations that start / stop processes we'll want to list
     // Skipping this round of updates to avoid race conditions
     log.debug('updateProcessStats skip: process ops in progress');
-    return;
+    return cb();
   }
   log.trace('updateProcessStats start');
   psList().then(function (psListData) {
-    log.trace('updateProcessStats got_data');
-    Process.find({pid: {$exists: true, $ne: ''}}).forEach(function (process) {
-      var psListItem = _.findWhere(psListData, {pid: process.pid});
-      psTreeUsageSum(process.pid, Meteor.bindEnvironment(function (usageErr, usageData) {
-        var modifier;
-        if (psListItem && !usageErr) {
-          modifier = _.extend(
-            {status: 'running', cmd: psListItem.cmd},
-            usageData
-          );
-        } else {
-          modifier = {
-            status: 'stopped',
-            pid: null,
-            memory: null,
-            cpu: null,
-            started: null
-          };
-        }
-        modifier = {$set: modifier};
-        log.trace('updateProcessStats ' + process.name + ' ' + JSON.stringify(modifier));
-        if (modifier.$set.status !== process.status) {
-          recordLog('system', 'info', process.name + ' went from ' + process.status + ' to ' + modifier.$set.status);
-        }
-        Process.update({_id: process._id}, modifier);
-      }));
-    });
+    log.trace('updateProcessStats got_data ' + JSON.stringify(psListData));
+    async.each(
+      Process.find({pid: {$exists: true, $ne: null}}).fetch(),
+      function (process, cb) {
+        var psListItem = _.findWhere(psListData, {pid: process.pid});
+        log.trace('updateProcessStats process ' + JSON.stringify(process));
+        psTreeUsageSum(process.pid, Meteor.bindEnvironment(function (usageErr, usageData) {
+          var modifier;
+          if (psListItem && !usageErr) {
+            modifier = _.extend(
+              {status: 'running', cmd: psListItem.cmd},
+              usageData
+            );
+          } else {
+            modifier = {
+              status: 'stopped',
+              pid: null,
+              memory: null,
+              cpu: null,
+              started: null
+            };
+          }
+          modifier = {$set: modifier};
+          log.trace('updateProcessStats ' + process.name + ' ' + JSON.stringify(modifier));
+          if (modifier.$set.status !== process.status) {
+            recordLog('system', 'info', process.name + ' went from ' + process.status + ' to ' + modifier.$set.status);
+          }
+          Process.update({_id: process._id}, modifier);
+          cb();
+        }));
+      }, cb);
   });
 }
 
-function registerProcess(name, pid, cb) {
+var updateProcessStatsSync = Meteor.wrapAsync(updateProcessStats);
+
+function registerProcess(name, pid) {
   log.info('registerProcess ' + name + ' ' + pid);
   Process.upsert(
     {
@@ -93,7 +103,7 @@ function registerProcess(name, pid, cb) {
         pid: pid,
         started: new Date()
       }
-    }, cb);
+    });
 }
 
 Meteor.setInterval(updateProcessStats, 1000);
@@ -124,15 +134,16 @@ function processOp(name, f) {
     },
     5000
   );
-  f(function () {
+  f(Meteor.bindEnvironment(function () {
     if (fut.isResolved()) {
       throw 'processOp already resolved ' + name;
     }
     Meteor.clearTimeout(timeout);
     processOpsInProgress -= 1;
     log.trace('processOp done ' + name + ' => '  + processOpsInProgress);
+    updateProcessStatsSync();
     fut.return();
-  });
+  }));
   fut.wait();
 }
 
@@ -153,25 +164,30 @@ Meteor.methods({
     }
 
     processOp('process/start ' + name, function (done) {
-      fs.createWriteStream(logfile(name, 'stdout'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdOutFd) {
-        fs.createWriteStream(logfile(name, 'stderr'), {flags: 'a'}).on('open', Meteor.bindEnvironment(function (stdErrFd) {
-          childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
-            env: _.extend(
-              {},
-              {HOME: process.env.HOME},
-              procfileEntry.env
-            ),
-            stdio: ['ignore', stdOutFd, stdErrFd],
-            cwd: expandHomeDir('~/.prezi/please')
-          });
-          recordLog('system', 'info', 'Started ' + name);
-          registerProcess(name, childProcess.pid, function () {
-            done();
-          });
-        }));
-      }));
+      childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
+        env: _.extend(
+          {},
+          {HOME: process.env.HOME},
+          procfileEntry.env
+        ),
+        cwd: expandHomeDir('~/.prezi/please')
+      });
+      recordLog('system', 'info', 'Started ' + name);
+      _(['stdout', 'stderr']).each(function (fdName) {
+        var log = new Logger(name, fdName);
+        readline.createInterface({
+          input: childProcess[fdName],
+          terminal: false
+        }).on('line', function (line) {
+          log.info(line);
+          recordLog(name, fdName, line);
+        });
+      });
+
+      registerProcess(name, childProcess.pid);
+      done();
     });
-},
+  },
 
   'process/kill': function (name, signal) {
     log.info('process/kill ' + name + ' ' + signal);
@@ -228,3 +244,9 @@ Meteor.methods({
     });
   }
 });
+
+process.on('SIGTERM', Meteor.bindEnvironment(function () {
+  log.info('Graceful shutdown initiated');
+  Meteor.call('process/kill-all', 'SIGTERM');
+  process.exit();
+}));
