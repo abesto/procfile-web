@@ -37,6 +37,11 @@ Meteor.startup(function () {
       {$set: spec}
     );
   });
+
+  if (Meteor.settings.startAllProcessesOnBoot) {
+    log.info('Starting all processes on boot (settings.startAllProcessesOnBoot)');
+    Meteor.call('process/start-all');
+  }
 });
 
 Meteor.publish('procfile', function () {

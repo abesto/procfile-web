@@ -1,4 +1,4 @@
 {
   "procfilePath": null,
-  "logDir": null
+  "startAllProcessesOnBoot": true
 }
