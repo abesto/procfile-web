@@ -29,7 +29,8 @@ Router.route('/logs', {
   data: function () {
     return {
       logs: Proclog.find({}, {sort: {timestamp: 1}}),
-      processes: Process.find({status: 'running'})
+      runningProcesses: Process.find({status: 'running'}),
+      processes: Process.find({})
     };
   },
   waitOn: function () {

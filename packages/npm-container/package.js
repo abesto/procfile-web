@@ -27,4 +27,8 @@ Package.onUse(function(api) {
       isAsset: true
     });
   }
+
+  // bootstrap-switch style
+  api.addFiles('.npm/package/node_modules/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css', 'client');
 });
+

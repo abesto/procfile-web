@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "bootstrap-switch": {
+      "version": "3.3.2",
+      "dependencies": {
+        "jquery": {
+          "version": "2.2.2"
+        }
+      }
+    },
     "expand-home-dir": {
       "version": "0.0.3"
     },

@@ -1,0 +1,51 @@
+div.process-controls {
+    display: inline-block;
+    margin-bottom: 20px;
+
+    font-size: .9em;
+    font-family: monospace;
+
+    border: 1px solid silver;
+    border-radius: 20px;
+
+    .process-name {
+        vertical-align: middle;
+        display: inline-block;
+    }
+
+    .btn {
+        border-radius: 20px;
+    }
+
+    .bootstrap-switch-wrapper, .bootstrap-switch-container {
+        border-radius: 20px;
+    }
+}
+
+.logs-container {
+    overflow: scroll;
+    background-color: black;
+
+    table.logs {
+        white-space: pre;
+        font-family: monospace;
+        color: #555;
+
+        td {
+            padding-left: 7px;
+            padding-right: 7px;
+            &.message {
+                border-left: 1px solid darkgray;
+                color: lightgray;
+            }
+            .app {
+                font-weight: bold;
+                color: gray;
+            }
+        }
+
+        tr:hover {
+            background-color: #333;
+        }
+    }
+}

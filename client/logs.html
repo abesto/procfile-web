@@ -1,21 +1,42 @@
 <template name="Logs">
-    <div class="container-fluid">
-        <div class="logs-container">
-            <table class="logs">
-                {{#each logs}}
-                    <tr>
-                        <td class="timestamp">{{fmtTimestamp timestamp}}</td>
-                        <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
-                        <td class="message">{{message}}</td>
-                    </tr>
-                {{/each}}
-            </table>
-        </div>
-        <select class="form-control" id="procname-for-stdin">
-            {{#each processes}}
-                <option>{{name}}</option>
-            {{/each}}
-        </select>
-        <input id="stdin-txt" class="form-control">
+    <div class="process-controls-container">
+        {{#each processes}}
+            <div class="process-controls">
+                <form class="form-inline">
+                <input type="checkbox" class="make-switch"
+                       data-process="{{name}}" {{statusChecked this}}
+                       data-size="mini" data-inverse="true"
+                />
+                <div class="process-name">{{name}}</div>
+                <div class="btn-group">
+                    {{#each fdNames}}
+                    <button class="channel-filter btn btn-xs btn-default {{channelFilterActiveClass ../name this}}"
+                            data-app="{{../name}}" data-channel="{{this}}">
+                        {{this}}
+                    </button>
+                    {{/each}}
+                </div>
+                </form>
+            </div>
+        {{/each}}
     </div>
+    <div class="logs-container">
+        <table class="logs">
+            {{#each logs}}
+                {{#if showLogline app channel}}
+                <tr>
+                    <td class="timestamp">{{fmtTimestamp timestamp}}</td>
+                    <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
+                    <td class="message">{{message}}</td>
+                </tr>
+                {{/if}}
+            {{/each}}
+        </table>
+    </div>
+    <select class="form-control" id="procname-for-stdin">
+        {{#each runningProcesses}}
+            <option>{{name}}</option>
+        {{/each}}
+    </select>
+    <input id="stdin-txt" class="form-control">
 </template>

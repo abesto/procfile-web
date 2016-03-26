@@ -23,10 +23,11 @@ meteorhacks:npm
 
 npm-container
 iron:router
-twbs:bootstrap
 underscore
 momentjs:moment
 copleykj:livestamp
 peerlibrary:async
 jag:pince
 cosmos:browserify
+less
+twbs:bootstrap
