@@ -10,7 +10,8 @@
                 <div class="process-name">{{name}}</div>
                 <div class="btn-group">
                     {{#each fdNames}}
-                    <button class="channel-filter btn btn-xs btn-default {{channelFilterActiveClass ../name this}}"
+                    <button type="button"
+                            class="channel-filter btn btn-xs btn-default {{channelFilterActiveClass ../name this}}"
                             data-app="{{../name}}" data-channel="{{this}}">
                         {{this}}
                     </button>
@@ -33,10 +34,17 @@
             {{/each}}
         </table>
     </div>
-    <select class="form-control" id="procname-for-stdin">
-        {{#each runningProcesses}}
-            <option>{{name}}</option>
-        {{/each}}
-    </select>
-    <input id="stdin-txt" class="form-control">
+    <div class="input-group dropup">
+        <div class="input-group-btn">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                {{ stdinProcess }} <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                {{#each runningProcesses}}
+                    <li><a href="#" class="set-stdin-process">{{name}}</a></li>
+                {{/each}}
+            </ul>
+        </div>
+        <input type="text" id="stdin-txt" class="form-control" autocomplete="off" autofocus>
+    </div>
 </template>

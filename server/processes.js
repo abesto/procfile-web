@@ -1,6 +1,5 @@
 var
   Future = Npm.require('fibers/future'),
-  readline = Npm.require('readline'),
   spawn = Meteor.npmRequire('child_process').spawn,
   fs = Meteor.npmRequire('fs'),
   psList = Meteor.npmRequire('ps-list'),

@@ -6,6 +6,12 @@ function isLoglineShown(app, channel) {
   return !Session.get(hideLogSessionKey(app, channel));
 }
 
+function scrollLogsToBottom() {
+  var $container = $('.logs-container').height($(window).height() - 170);
+  $container.scrollTop($container.prop('scrollHeight'));
+}
+
+
 Template.Logs.helpers({
   fmtTimestamp: function (timestamp) {
     return moment(timestamp).format('HH:mm:ss.SSS');
@@ -29,6 +35,19 @@ Template.Logs.helpers({
     if (isLoglineShown(app, channel)) {
       return 'active';
     }
+  },
+
+  stdinProcess: function() {
+    var val = Session.get('stdin-process');
+    if (!val || Process.findOne({name: val}).status !== 'running') {
+      var newProcess = Process.findOne({status: 'running'});
+      if (!newProcess) {
+        return;
+      }
+      val = newProcess.name;
+      Session.set('stdin-process', val);
+    }
+    return val;
   }
 });
 
@@ -36,7 +55,7 @@ Template.Logs.events({
   'keypress #stdin-txt': function (evt) {
     if (evt.which === 13) {
       var
-        procname = $('#procname-for-stdin').val(),
+        procname = Session.get('stdin-process'),
         txt = $('#stdin-txt').val().trim();
       $('#stdin-txt').val('');
       Meteor.call('process/stdin', procname, txt);
@@ -61,19 +80,19 @@ Template.Logs.events({
       channel = $btn.data('channel'),
       key = hideLogSessionKey(app, channel);
     Session.set(key, !Session.get(key));
-    console.log(app, channel, isLoglineShown(app, channel));
-    evt.preventDefault();
+
+    // Dsiabling filters can cause more log lines to appear, so we need to re-scroll (but yield so the lines appear first)
+    setTimeout(scrollLogsToBottom, 0);
+  },
+
+  'click .set-stdin-process': function (evt) {
+    Session.set('stdin-process', $(evt.target).text());
   }
 });
 
 Template.Logs.onRendered(function () {
   // Keep logs scrolled to bottom
-  var $container = this.$('.logs-container').height($(window).height() - 150);
-  Proclog.find().observeChanges({
-    added: function() {
-      $container.scrollTop($container.prop('scrollHeight'));
-    }
-  });
+  Proclog.find().observeChanges({added: scrollLogsToBottom});
 
   // Initialize on/off switches
   this.$('.make-switch').each(function () {
