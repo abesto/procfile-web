@@ -16,4 +16,3 @@ The available fields:
 | Field    | Default | Description |
 |----------|---------|-------------|
 | `procfilePath` | Load bundled Procfile from [`private/Procfile.example`](private/Procfile.example) | Path of the `Procfile` to load at startup |
-| `logDir`       | `/tmp` | Directory where logs from managed processes will be written |
