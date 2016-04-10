@@ -1,1 +1,0 @@
-bootstrapSwitch = require('bootstrap-switch');

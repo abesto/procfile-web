@@ -1,0 +1,23 @@
+{
+  "name": "procfile-web",
+  "version": "0.0.1",
+  "description": "WIP. This project will ideally grow up to be a browser-based tool for managing Procfile-described service groups during development.",
+  "main": "index.js",
+  "dependencies": {
+    "procfile-parser": "https://github.com/abesto/procfile-parser/archive/cf1febe159ee42100e23c01c84b4a8890c56f5b4.tar.gz",
+    "usage": "0.7.1",
+    "ps-list": "3.1.0",
+    "expand-home-dir": "0.0.3",
+    "ps-tree": "1.0.1",
+    "bootstrap-switch": "3.3.2"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abesto/procfile-web.git"
+  },
+  "bugs": {
+    "url": "https://github.com/abesto/procfile-web/issues"
+  },
+  "homepage": "https://github.com/abesto/procfile-web#readme"
+}

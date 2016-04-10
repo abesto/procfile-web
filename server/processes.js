@@ -101,7 +101,8 @@ function registerProcess(name, pid) {
       $set: {
         name: name,
         pid: pid,
-        started: new Date()
+        started: new Date(),
+        status: 'running'
       }
     });
 }
@@ -174,15 +175,6 @@ Meteor.methods({
         cwd: expandHomeDir('~/.prezi/please')
       });
 
-      childProcess.on('error', Meteor.bindEnvironment(function (err) {
-        if (err.code === 'ENOENT') {
-          recordLog('system', 'error', 'Binary for ' + name + ' not found at "' + binaryPath + '".');
-          Process.update({name: name}, {$set: {state: 'stopped'}});
-        } else {
-          recordLog(name, '', err.toString());
-        }
-      }));
-
       recordLog('system', 'info', 'Started ' + name);
       _(['stdout', 'stderr']).each(function (fdName) {
         var log = new Logger(name, fdName);
@@ -200,6 +192,16 @@ Meteor.methods({
 
       registerProcess(name, childProcess.pid);
       childProcesses[name] = childProcess;
+
+      childProcess.on('error', Meteor.bindEnvironment(function (err) {
+        if (err.code === 'ENOENT') {
+          recordLog('system', 'error', 'Binary for ' + name + ' not found at "' + binaryPath + '".');
+          Process.update({name: name}, {$set: {state: 'stopped'}});
+        } else {
+          recordLog(name, '', err.toString());
+        }
+      }));
+
       done();
     });
   },
