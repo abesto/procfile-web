@@ -1,3 +1,5 @@
+import 'bootstrap-switch';
+
 function hideLogSessionKey(app, channel) {
   return 'hideLog/' + app + '/' + channel;
 }

@@ -28,7 +28,7 @@ Router.route('/processes', {
 Router.route('/logs', {
   data: function () {
     return {
-      logs: Proclog.find({}, {sort: {timestamp: 1}}),
+      logs: Proclog.find({}),
       runningProcesses: Process.find({status: 'running'}),
       processes: Process.find({})
     };

@@ -1,11 +1,11 @@
+import { spawn } from 'child_process';
+import psList from 'ps-list';
+import psTree from 'ps-tree';
+import usage from 'usage';
+import expandHomeDir from 'expand-home-dir';
+
 var
   Future = Npm.require('fibers/future'),
-  spawn = Meteor.npmRequire('child_process').spawn,
-  fs = Meteor.npmRequire('fs'),
-  psList = Meteor.npmRequire('ps-list'),
-  psTree = Meteor.npmRequire('ps-tree'),
-  usage = Meteor.npmRequire('usage'),
-  expandHomeDir = Meteor.npmRequire('expand-home-dir'),
   processOpsInProgress = 0,
   childProcesses = {},
   log = new Logger('server.processes');
@@ -52,7 +52,7 @@ function updateProcessStats(cb) {
     // Someone's doing operations that start / stop processes we'll want to list
     // Skipping this round of updates to avoid race conditions
     log.debug('updateProcessStats skip: process ops in progress');
-    return cb();
+    if (cb) { return cb(); }
   }
   log.trace('updateProcessStats start');
   psList().then(function (psListData) {

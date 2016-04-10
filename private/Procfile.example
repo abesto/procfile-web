@@ -1,4 +1,2 @@
 periodic: $$periodic.sh
-spam-100: $$spam.sh 100
-spam-1000: $$spam.sh 1000
-spam-10000: $$spam.sh 10000
+spam: $$spam.sh 100

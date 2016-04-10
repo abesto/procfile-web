@@ -1,8 +1,8 @@
-var
-  fs = Meteor.npmRequire('fs'),
-  procfile = Meteor.npmRequire('procfile-parser'),
-  expandHomeDir = Meteor.npmRequire('expand-home-dir'),
-  log = new Logger('server.procfile');
+import fs from 'fs';
+import procfile from 'procfile-parser';
+import expandHomeDir from 'expand-home-dir';
+
+var log = new Logger('server.procfile');
 
 function loadProcfile(tag) {
   var
@@ -27,19 +27,21 @@ function loadProcfile(tag) {
 
 Meteor.startup(function () {
   Procfile.remove({tag: 'current'});
+  Process.remove({});
 
   var procfile = loadProcfile('current');
-  Procfile.insert(procfile);
-
   _(procfile.content).each(function (spec) {
     if (spec.cmd.startsWith('$$')) {
-      spec.cmd = Assets.absoluteFilePath(spec.cmd.substring(2));
+      spec.args.unshift(Assets.absoluteFilePath(spec.cmd.substring(2)));
+      spec.cmd = 'bash';
     }
     Process.upsert(
       {name: spec.name},
       {$set: spec}
     );
   });
+
+  Procfile.insert(procfile);
 
   if (Meteor.settings.startAllProcessesOnBoot) {
     log.info('Starting all processes on boot (settings.startAllProcessesOnBoot)');
