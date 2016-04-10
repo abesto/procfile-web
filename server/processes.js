@@ -164,7 +164,8 @@ Meteor.methods({
     }
 
     processOp('process/start ' + name, function (done) {
-      childProcess = spawn(expandHomeDir(procfileEntry.cmd), procfileEntry.args, {
+      var binaryPath = expandHomeDir(procfileEntry.cmd);
+      childProcess = spawn(binaryPath, procfileEntry.args, {
         env: _.extend(
           {},
           {HOME: process.env.HOME},
@@ -172,6 +173,16 @@ Meteor.methods({
         ),
         cwd: expandHomeDir('~/.prezi/please')
       });
+
+      childProcess.on('error', Meteor.bindEnvironment(function (err) {
+        if (err.code === 'ENOENT') {
+          recordLog('system', 'error', 'Binary for ' + name + ' not found at "' + binaryPath + '".');
+          Process.update({name: name}, {$set: {state: 'stopped'}});
+        } else {
+          recordLog(name, '', err.toString());
+        }
+      }));
+
       recordLog('system', 'info', 'Started ' + name);
       _(['stdout', 'stderr']).each(function (fdName) {
         var log = new Logger(name, fdName);
