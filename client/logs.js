@@ -1,10 +1,9 @@
 import { Session } from 'meteor/session';
 import { Template } from 'meteor/templating';
 import { Meteor } from 'meteor/meteor';
-import $ from 'jquery';
 
-import 'bootstrap-switch';
 import moment from 'moment';
+import 'bootstrap-switch';
 
 import { Process } from '/shared/process';
 import { Proclog } from '/shared/proclog';

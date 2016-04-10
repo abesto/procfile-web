@@ -5,9 +5,8 @@
   "main": "index.js",
   "dependencies": {
     "async": "^2.0.0-rc.3",
-    "bootstrap-switch": "3.3.2",
+    "bootstrap-switch": "^3.3.2",
     "expand-home-dir": "0.0.3",
-    "jquery": "^2.2.3",
     "lodash": "^4.9.0",
     "moment": "^2.12.0",
     "procfile-parser": "https://github.com/abesto/procfile-parser/archive/cf1febe159ee42100e23c01c84b4a8890c56f5b4.tar.gz",

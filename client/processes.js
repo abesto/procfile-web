@@ -1,7 +1,7 @@
 import { Meteor } from 'meteor/meteor';
 import { Template } from 'meteor/templating';
 import { Spacebars } from 'meteor/spacebars';
-import $ from 'jquery';
+import { $ } from 'meteor/jquery';
 
 import moment from 'moment';
 
