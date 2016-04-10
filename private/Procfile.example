@@ -1,2 +1,3 @@
 periodic: $$periodic.sh
 spam: $$spam.sh 100
+echo: $$echo.sh
