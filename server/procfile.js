@@ -1,6 +1,14 @@
 import fs from 'fs';
+
+import { Meteor } from 'meteor/meteor';
+import { Logger } from 'meteor/jag:pince';
+import { _ } from 'lodash';
+
 import procfile from 'procfile-parser';
 import expandHomeDir from 'expand-home-dir';
+
+import { Process } from '/shared/process';
+import { Procfile } from '/shared/procfile';
 
 var log = new Logger('server.procfile');
 

@@ -1,13 +1,23 @@
+import { Meteor } from 'meteor/meteor';
+import { _ } from 'lodash';
+
+import { Logger } from 'meteor/jag:pince';
+
 import { spawn } from 'child_process';
 import psList from 'ps-list';
 import psTree from 'ps-tree';
 import usage from 'usage';
 import expandHomeDir from 'expand-home-dir';
+import async from 'async';
+
+import { recordLog, closeLines } from '/server/proclog';
+import { Process } from '/shared/process';
+import { Procfile } from '/shared/procfile';
 
 var
-  Future = Npm.require('fibers/future'),
   processOpsInProgress = 0,
   childProcesses = {},
+  Future = Npm.require('fibers/future'),
   log = new Logger('server.processes');
 
 
@@ -60,7 +70,7 @@ function updateProcessStats(cb) {
     async.each(
       Process.find({pid: {$exists: true, $ne: null}}).fetch(),
       function (process, cb) {
-        var psListItem = _.findWhere(psListData, {pid: process.pid});
+        var psListItem = _.find(psListData, {pid: process.pid});
         log.trace('updateProcessStats process ' + JSON.stringify(process));
         psTreeUsageSum(process.pid, Meteor.bindEnvironment(function (usageErr, usageData) {
           var modifier;
@@ -89,8 +99,6 @@ function updateProcessStats(cb) {
       }, cb);
   });
 }
-
-var updateProcessStatsSync = Meteor.wrapAsync(updateProcessStats);
 
 function registerProcess(name, pid) {
   log.info('registerProcess ' + name + ' ' + pid);
@@ -142,8 +150,9 @@ function processOp(name, f) {
     Meteor.clearTimeout(timeout);
     processOpsInProgress -= 1;
     log.trace('processOp done ' + name + ' => '  + processOpsInProgress);
-    updateProcessStatsSync();
-    fut.return();
+    updateProcessStats(function () {
+      fut.return();
+    });
   }));
   fut.wait();
 }
@@ -157,7 +166,8 @@ Meteor.methods({
     log.info('process/start ' + name);
     if (!processObj) {
       log.info('process/start process-not-found ' + name);
-      throw new Meteor.Error('process-not-found', 'Process name ' + name + ' is not defined in the Procfile (see /procfile for the list of known processes)');
+      throw new Meteor.Error('process-not-found',
+        'Process name ' + name + ' is not defined in the Procfile (see /procfile for the list of known processes)');
     }
     if (processObj.status === 'running') {
       log.info('process/start process-running ' + name);
@@ -177,14 +187,13 @@ Meteor.methods({
 
       recordLog('system', 'info', 'Started ' + name);
       _(['stdout', 'stderr']).each(function (fdName) {
-        var log = new Logger(name, fdName);
         childProcess[fdName].on('data', function(data) {
           var lines = data.toString().split('\n'), i,
             lastLine = lines.pop();
           for (i = 0; i < lines.length; i++) {
             recordLog(name, fdName, lines[i]);
           }
-          if (lastLine != '') {
+          if (lastLine !== '') {
             recordLog(name, fdName, lastLine, true);
           }
         });
@@ -212,7 +221,8 @@ Meteor.methods({
     var procObj = Process.findOne({name: name});
     if (!procObj) {
       log.info('process/kill process-not-found ' + name);
-      throw new Meteor.Error('process-not-found', 'Process name ' + name + ' is not defined in the Procfile (see /procfile for the list of known processes)');
+      throw new Meteor.Error('process-not-found',
+        'Process name ' + name + ' is not defined in the Procfile (see /procfile for the list of known processes)');
     }
     if (procObj.status !== 'running') {
       log.info('process/kill process-not-running ' + name);

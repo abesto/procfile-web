@@ -1,4 +1,13 @@
+import { Session } from 'meteor/session';
+import { Template } from 'meteor/templating';
+import { Meteor } from 'meteor/meteor';
+import $ from 'jquery';
+
 import 'bootstrap-switch';
+import moment from 'moment';
+
+import { Process } from '/shared/process';
+import { Proclog } from '/shared/proclog';
 
 function hideLogSessionKey(app, channel) {
   return 'hideLog/' + app + '/' + channel;
@@ -83,7 +92,8 @@ Template.Logs.events({
       key = hideLogSessionKey(app, channel);
     Session.set(key, !Session.get(key));
 
-    // Dsiabling filters can cause more log lines to appear, so we need to re-scroll (but yield so the lines appear first)
+    // Disabling filters can cause more log lines to appear, so we need to re-scroll
+    // But yield so the lines appear first
     setTimeout(scrollLogsToBottom, 0);
   },
 

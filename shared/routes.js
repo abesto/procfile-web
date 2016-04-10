@@ -1,3 +1,10 @@
+import { Meteor } from 'meteor/meteor';
+import { Router } from 'meteor/iron:router';
+
+import { Procfile } from '/shared/procfile';
+import { Process } from '/shared/process';
+import { Proclog } from '/shared/proclog';
+
 Router.configure({
   layoutTemplate: 'Layout'
 });

@@ -1,1 +1,3 @@
-Proclog = new Meteor.Collection('log');
+import { Mongo } from 'meteor/mongo';
+
+export var Proclog = new Mongo.Collection('log');

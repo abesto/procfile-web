@@ -61,7 +61,6 @@ mongo-id@1.0.3
 npm-mongo@1.4.42
 observe-sequence@1.0.10
 ordered-dict@1.0.6
-peerlibrary:async@1.5.2_1
 practicalmeteor:chai@1.9.2_3
 practicalmeteor:loglevel@1.1.0_3
 promise@0.6.6

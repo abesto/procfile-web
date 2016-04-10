@@ -1,14 +1,27 @@
-recordLog = Meteor.bindEnvironment(function recordLog(app, channel, message, withoutNewline) {
+import { Meteor } from 'meteor/meteor';
+
+import { Proclog } from '/shared/proclog';
+
+
+export var recordLog = Meteor.bindEnvironment(function recordLog(app, channel, message, withoutNewline) {
   withoutNewline = !!withoutNewline;
   var existingRecord = Proclog.findOne({app: app, channel: channel, withoutNewline: true});
   if (existingRecord) {
-    Proclog.update({_id: existingRecord._id}, {$set: {message: existingRecord.message + message, withoutNewline: withoutNewline}});
+    Proclog.update({_id: existingRecord._id}, {
+      $set: {message: existingRecord.message + message, withoutNewline: withoutNewline}
+    });
   } else {
-    Proclog.insert({app: app, channel: channel, message: message, timestamp: new Date(), withoutNewline: withoutNewline});
+    Proclog.insert({
+      app: app,
+      channel: channel,
+      message: message,
+      timestamp: new Date(),
+      withoutNewline: withoutNewline
+    });
   }
 });
 
-closeLines = Meteor.bindEnvironment(function closeLines(app) {
+export var closeLines = Meteor.bindEnvironment(function closeLines(app) {
   Proclog.update({app: app, withoutNewline: true}, {$set: {withoutNewline: false}});
 });
 

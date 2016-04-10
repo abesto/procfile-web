@@ -1,3 +1,11 @@
+import { Meteor } from 'meteor/meteor';
+import { Template } from 'meteor/templating';
+import { Spacebars } from 'meteor/spacebars';
+import $ from 'jquery';
+
+import moment from 'moment';
+
+
 Template.Processes.helpers({
   megabytes: function(bytes) {
     if (bytes) {
