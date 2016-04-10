@@ -1,3 +1,4 @@
-authsvc: PYTHONUNBUFFERED=true ~/.prezi/please/src/repos/authservice.sh run_service
-media: PYTHONUNBUFFERED=true ~/.prezi/please/src/repos/media.sh run_service
-haproxy_8000: PYTHONUNBUFFERED=true ~/.prezi/please/src/config/haproxy.sh run_service
+periodic: $$periodic.sh
+spam-100: $$spam.sh 100
+spam-1000: $$spam.sh 1000
+spam-10000: $$spam.sh 10000

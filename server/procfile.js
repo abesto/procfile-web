@@ -8,7 +8,7 @@ function loadProcfile(tag) {
   var
     path = Meteor.settings.procfilePath,
     rawContent;
-  if (path === null) {
+  if (!path) {
     path = 'assets/Procfile.example';
     rawContent = Assets.getText('Procfile.example');
   } else {
@@ -32,6 +32,9 @@ Meteor.startup(function () {
   Procfile.insert(procfile);
 
   _(procfile.content).each(function (spec) {
+    if (spec.cmd.startsWith('$$')) {
+      spec.cmd = Assets.absoluteFilePath(spec.cmd.substring(2));
+    }
     Process.upsert(
       {name: spec.name},
       {$set: spec}

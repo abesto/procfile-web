@@ -272,3 +272,4 @@ process.on('SIGTERM', Meteor.bindEnvironment(function () {
   Meteor.call('process/kill-all', 'SIGTERM');
   process.exit();
 }));
+
