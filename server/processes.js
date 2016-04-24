@@ -10,7 +10,7 @@ import usage from 'usage';
 import expandHomeDir from 'expand-home-dir';
 import async from 'async';
 
-import { recordLog, closeLines } from '/server/proclog';
+import { recordLog, findLogWithoutNewline, closeLines } from '/server/proclog';
 import { Process } from '/shared/process';
 import { Procfile } from '/shared/procfile';
 
@@ -187,16 +187,27 @@ Meteor.methods({
 
       recordLog('system', 'info', 'Started ' + name);
       _(['stdout', 'stderr']).each(function (fdName) {
-        childProcess[fdName].on('data', function(data) {
+        function handleData(data) {
+          var logWithoutNewline = findLogWithoutNewline(name, fdName);
           var lines = data.toString().split('\n'), i,
+            firstLine = lines.shift(),
             lastLine = lines.pop();
+
+          if (_.isUndefined(lastLine)) {
+            // Special case: there's only a single line of input, with no \n
+            recordLog(name, fdName, firstLine, true, logWithoutNewline);
+            return;
+          }
+
+          recordLog(name, fdName, firstLine, false, logWithoutNewline);
           for (i = 0; i < lines.length; i++) {
-            recordLog(name, fdName, lines[i]);
+            recordLog(name, fdName, lines[i], false, null);
           }
-          if (lastLine !== '') {
-            recordLog(name, fdName, lastLine, true);
+          if (!_.isUndefined(lastLine) && lastLine !== '') {
+            recordLog(name, fdName, lastLine, true, null);
           }
-        });
+        }
+        childProcess[fdName].on('data', handleData);
       });
 
       registerProcess(name, childProcess.pid);
