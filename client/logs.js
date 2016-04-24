@@ -1,6 +1,8 @@
 import { Session } from 'meteor/session';
 import { Template } from 'meteor/templating';
 import { Meteor } from 'meteor/meteor';
+import { $ } from 'meteor/jquery';
+import { _ } from 'meteor/underscore';
 
 import moment from 'moment';
 import 'bootstrap-switch';
@@ -16,21 +18,20 @@ function isLoglineShown(app, channel) {
   return !Session.get(hideLogSessionKey(app, channel));
 }
 
-function scrollLogsToBottom() {
+var scrollLogsToBottom = _.debounce(function() {
   var $container = $('.logs-container').height($(window).height() - 170);
   $container.scrollTop($container.prop('scrollHeight'));
-}
-
+}, 100);
 
 Template.Logs.helpers({
-  fmtTimestamp: function (timestamp) {
-    return moment(timestamp).format('HH:mm:ss.SSS');
-  },
-
   statusChecked: function (process) {
     if (process.status === 'running') {
       return 'checked';
     }
+  },
+
+  fmtTimestamp: function (timestamp) {
+    return moment(timestamp).format('HH:mm:ss.SSS');
   },
 
   fdNames: function () {
@@ -66,8 +67,9 @@ Template.Logs.events({
     if (evt.which === 13) {
       var
         procname = Session.get('stdin-process'),
-        txt = $('#stdin-txt').val().trim();
-      $('#stdin-txt').val('');
+        $txt = $(evt.target),
+        txt = $txt.val().trim();
+      $txt.val('');
       Meteor.call('process/stdin', procname, txt);
     }
   },
@@ -110,11 +112,11 @@ Template.Logs.onRendered(function () {
     var $this = $(this);
     $this.bootstrapSwitch();
     Process.find({name: $this.data('process')}).observeChanges({
-      changed: function (_, fields) {
+      changed: _.debounce(function (_, fields) {
         if (fields.hasOwnProperty('status')) {
           $this.bootstrapSwitch('state', fields.status === 'running', true);
         }
-      }
+      }, 100)
     });
   });
 });
