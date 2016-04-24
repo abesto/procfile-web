@@ -32,6 +32,8 @@ function isLoglineShown(log) {
   return !Session.get(hideLogSessionKey(log.app, log.channel));
 }
 
+var fdNames = ['stdin', 'stdout', 'stderr'];
+
 Template.Logs.helpers({
   statusChecked: function (process) {
     if (process.status === 'running') {
@@ -40,7 +42,7 @@ Template.Logs.helpers({
   },
 
   fdNames: function () {
-    return ['stdin', 'stdout', 'stderr'];
+    return fdNames;
   },
 
   channelFilterActiveClass: function (app, channel) {
@@ -97,9 +99,19 @@ Template.Logs.events({
       channel = $btn.data('channel'),
       key = hideLogSessionKey(app, channel);
     Session.set(key, !Session.get(key));
+  },
 
-    // Re-render. Needed due to the way clusterize.js is implemented
-    Template.instance().rerenderLogs();
+  'click .process-name': function (evt) {
+    // Hide all channels if any channels are shown. Show all channels if all channels are hidden.
+    var
+      $target = $(evt.target),
+      app = $target.text(),
+      newValue = !_.every(fdNames, function (name) {
+        return !!Session.get(hideLogSessionKey(app, name));
+      });
+    _.forEach(fdNames, function (name) {
+      Session.set(hideLogSessionKey(app, name), newValue);
+    });
   },
 
   'click .set-stdin-process': function (evt) {
@@ -223,5 +235,17 @@ Template.Logs.onRendered(function () {
         }
       }, 100)
     });
+  });
+
+  // Re-render on filter changes
+  this.autorun(function () {
+    // Set up dependencies
+    Process.find().forEach(function (process) {
+      _.each(fdNames, function (fdName) {
+        Session.get(hideLogSessionKey(process.name, fdName));
+      });
+    });
+    // Do this whenever they change
+    that.rerenderLogs();
   });
 });
