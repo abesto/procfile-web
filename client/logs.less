@@ -25,7 +25,7 @@ div.process-controls {
 
 .logs-container {
     background-color: black;
-    max-height: 500px;
+    width: 100%;
 
     table.logs {
         white-space: pre;
@@ -38,6 +38,7 @@ div.process-controls {
             &.message {
                 border-left: 1px solid darkgray;
                 color: lightgray;
+                width: 100%;
             }
             .app {
                 font-weight: bold;
@@ -47,6 +48,10 @@ div.process-controls {
 
         tr:hover {
             background-color: #333;
+        }
+
+        tr.process-hovered {
+            background-color: #111;
         }
     }
 }

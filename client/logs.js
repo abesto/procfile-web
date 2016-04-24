@@ -16,13 +16,36 @@ import async from 'async';
 import { Process } from '/shared/process';
 import { Proclog } from '/shared/proclog';
 
+// Avoiding reactive templates here for performance
 function renderRow(log) {
-  return '<tr>' +
+  return '<tr class="logline ' + log.app + '-' + log.channel + '" data-app="' + log.app + '" data-channel="' + log.channel + '">' +
     '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
     '<td><span class="app">' + log.app + '</span>/<span class="channel">' + log.channel + '</span></td>' +
     '<td class="message">' + log.message + '</td>' +
     '</tr>';
 }
+
+var trHighlighter = (function () {
+// And using newish APIs to do what would be trivial with reactive templates
+  var stylesheetEl = document.createElement('style'), stylesheet;
+  document.head.appendChild(stylesheetEl);
+  stylesheet = stylesheetEl.sheet;
+
+  function removeHighlight () {
+    while (stylesheet.cssRules.length > 0) {
+      stylesheet.deleteRule(0);
+    }
+  }
+
+  return {
+    highlight: function (app, channel) {
+      removeHighlight();
+      stylesheet.insertRule('.logline.' + app + '-' + channel + ' { background-color: #151515; }', 0);
+    },
+    removeHighlight: removeHighlight
+  };
+})();
+
 
 function hideLogSessionKey(app, channel) {
   return 'hideLog/' + app + '/' + channel;
@@ -70,6 +93,7 @@ Template.Logs.helpers({
 });
 
 Template.Logs.events({
+  // STDIN
   'keypress #stdin-txt': function (evt) {
     if (evt.which === 13) {
       var
@@ -80,7 +104,11 @@ Template.Logs.events({
       Meteor.call('process/stdin', procname, txt);
     }
   },
+  'click .set-stdin-process': function (evt) {
+    Session.set('stdin-process', $(evt.target).text());
+  },
 
+  // Start / stop processes
   'switchChange.bootstrapSwitch .make-switch': function (evt) {
     var
       $input = $(evt.target),
@@ -92,6 +120,7 @@ Template.Logs.events({
     }
   },
 
+  // Filter by channel
   'click .channel-filter': function (evt) {
     var
       $btn = $(evt.target),
@@ -101,6 +130,7 @@ Template.Logs.events({
     Session.set(key, !Session.get(key));
   },
 
+  // Filter by add
   'click .process-name': function (evt) {
     // Hide all channels if any channels are shown. Show all channels if all channels are hidden.
     var
@@ -114,14 +144,18 @@ Template.Logs.events({
     });
   },
 
-  'click .set-stdin-process': function (evt) {
-    Session.set('stdin-process', $(evt.target).text());
-  },
-
+  // Follow logs
   'click .follow-logs': function () {
     var followLogs = Template.instance().followLogs;
     followLogs(!followLogs());
-  }
+  },
+
+  // Highlight logs of the same process
+  'mouseenter .logline': function (evt) {
+    var $el = $(evt.target);
+    trHighlighter.highlight($el.data('app'), $el.data('channel'));
+  },
+  'mouseleave .logline': trHighlighter.removeHighlight
 });
 
 Template.Logs.onCreated(function () {
