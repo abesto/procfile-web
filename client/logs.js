@@ -15,13 +15,29 @@ import async from 'async';
 import { Process } from '/shared/process';
 import { Proclog } from '/shared/proclog';
 
+var clusterize;
+
+function renderRow(log) {
+  return '<tr>' +
+    '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
+    '<td><span class="app">' + log.app + '</span>/<span class="channel">' + log.channel + '</span></td>' +
+    '<td class="message">' + log.message + '</td>' +
+    '</tr>';
+}
+
 function hideLogSessionKey(app, channel) {
   return 'hideLog/' + app + '/' + channel;
 }
 
-function isLoglineShown(app, channel) {
-  return !Session.get(hideLogSessionKey(app, channel));
+function isLoglineShown(log) {
+  return !Session.get(hideLogSessionKey(log.app, log.channel));
 }
+
+var rerender = _.debounce(function () {
+  clusterize.update(
+    _(Proclog.find().fetch()).filter(isLoglineShown).map(renderRow)
+  );
+}, 100);
 
 var scrollLogsToBottom = _.debounce(function() {
   var $container = $('#logs-scroll-area').css('max-height', $(window).height() - 170);
@@ -33,24 +49,14 @@ Template.Logs.helpers({
     if (process.status === 'running') {
       return 'checked';
     }
-  }
-});
-
-Template.LogLine.helpers({
-  fmtTimestamp: function (timestamp) {
-    return moment(timestamp).format('HH:mm:ss.SSS');
   },
 
   fdNames: function () {
     return ['stdin', 'stdout', 'stderr'];
   },
 
-  showLogline: function(app, channel) {
-    return isLoglineShown(app, channel);
-  },
-
   channelFilterActiveClass: function(app, channel) {
-    if (isLoglineShown(app, channel)) {
+    if (isLoglineShown({app: app, channel: channel})) {
       return 'active';
     }
   },
@@ -100,9 +106,12 @@ Template.Logs.events({
       key = hideLogSessionKey(app, channel);
     Session.set(key, !Session.get(key));
 
+    // Re-render. Needed due to the way clusterize.js is implemented
+    rerender();
+
     // Disabling filters can cause more log lines to appear, so we need to re-scroll
-    // But yield so the lines appear first
-    setTimeout(scrollLogsToBottom, 0);
+    // TODO: once "Follow logs" toggle is implemented, respect it
+    scrollLogsToBottom();
   },
 
   'click .set-stdin-process': function (evt) {
@@ -112,23 +121,15 @@ Template.Logs.events({
 
 Template.Logs.onRendered(function () {
   // Keep logs scrolled to bottom
+  scrollLogsToBottom();
   Proclog.find().observeChanges({added: scrollLogsToBottom});
 
   // Clusterize takes care of infinite scrolling: it ensures there's only a screenful of logs in the DOM
-  var clusterize = new Clusterize({
+  clusterize = new Clusterize({
     scrollId: 'logs-scroll-area',
     contentId: 'logs-content-area',
     tag: 'tr'
   });
-
-  var rows = [];
-  function renderRow(log) {
-      return '<tr>' +
-        '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
-        '<td><span class="app">' + log.app + '</span>/<span class="channel">' + log.channel + '</span></td>' +
-        '<td class="message">' + log.message + '</td>' +
-        '</tr>';
-  }
 
   // async.cargo, with the timeout, throttles the render calls; it collects all the logs that came in within
   // 100ms, and hands them off to clusterize in a single go, minimizing DOM updates
@@ -139,13 +140,15 @@ Template.Logs.onRendered(function () {
 
   Proclog.find().observe({
     added: function (log) {
+      if (!isLoglineShown(log)) {
+        return;
+      }
       var rendered = renderRow(log);
       clusterizeCargo.push(rendered);
-      rows.push(rendered);
     },
-    changedAt: function (newLog, oldLog, index) {
-      rows[index] = renderRow(newLog);
-      clusterize.update(rows);
+    changed: function () {
+      // Re-render. Needed due to the way clusterize.js is implemented
+      rerender();
     }
   });
 
