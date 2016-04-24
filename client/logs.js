@@ -4,6 +4,7 @@ import 'clusterize.js/clusterize.css';
 import { Session } from 'meteor/session';
 import { Template } from 'meteor/templating';
 import { Meteor } from 'meteor/meteor';
+import { ReactiveVar } from 'meteor/reactive-var';
 import { $ } from 'meteor/jquery';
 import { _ } from 'meteor/underscore';
 
@@ -39,11 +40,6 @@ var rerender = _.debounce(function () {
   );
 }, 100);
 
-var scrollLogsToBottom = _.debounce(function() {
-  var $container = $('#logs-scroll-area').css('max-height', $(window).height() - 170);
-  $container.scrollTop($container.prop('scrollHeight'));
-}, 100);
-
 Template.Logs.helpers({
   statusChecked: function (process) {
     if (process.status === 'running') {
@@ -55,10 +51,14 @@ Template.Logs.helpers({
     return ['stdin', 'stdout', 'stderr'];
   },
 
-  channelFilterActiveClass: function(app, channel) {
+  channelFilterActiveClass: function (app, channel) {
     if (isLoglineShown({app: app, channel: channel})) {
       return 'active';
     }
+  },
+
+  followLogsActiveClass: function () {
+    return Template.instance().followLogs() ? 'active' : '';
   },
 
   stdinProcess: function() {
@@ -108,26 +108,85 @@ Template.Logs.events({
 
     // Re-render. Needed due to the way clusterize.js is implemented
     rerender();
-
-    // Disabling filters can cause more log lines to appear, so we need to re-scroll
-    // TODO: once "Follow logs" toggle is implemented, respect it
-    scrollLogsToBottom();
   },
 
   'click .set-stdin-process': function (evt) {
     Session.set('stdin-process', $(evt.target).text());
+  },
+
+  'click .follow-logs': function () {
+    var followLogs = Template.instance().followLogs;
+    followLogs(!followLogs());
   }
 });
 
+Template.Logs.onCreated(function () {
+  var that = this;
+  this.isFollowingLogs = new ReactiveVar(true);
+  this.followLogs = function (arg) {
+    if (_.isUndefined(arg)) {
+      return that.isFollowingLogs.get();
+    } else {
+      throw "Can't set followLogs before onRendered event";
+    }
+  };
+});
+
 Template.Logs.onRendered(function () {
-  // Keep logs scrolled to bottom
-  scrollLogsToBottom();
-  Proclog.find().observeChanges({added: scrollLogsToBottom});
+  var
+    $scrollArea = this.$('.logs-container'),
+    $contentArea = $scrollArea.find('tbody'),
+    resizeLogsContainer, scrollToBottom, stopObservingLogsForScroll,
+    that = this;
+
+  // Logs scroll area size
+  resizeLogsContainer = _.debounce(function () {
+    var targetHeight = $(window).height() - 170;
+    $scrollArea
+      .css('max-height', targetHeight)
+      .css('height', targetHeight);
+  });
+  resizeLogsContainer();
+  $(window).resize(resizeLogsContainer);
+
+  // "Follow logs" functionality
+  this.followLogs = function (arg) {
+    if (_.isUndefined(arg)) {
+      // Getter
+      return that.isFollowingLogs.get();
+    } else {
+      // Setter, with some logic
+      that.isFollowingLogs.set(arg);
+      if (arg) {
+        // Start following
+        stopObservingLogsForScroll = Proclog.find().observeChanges({added: scrollToBottom}).stop;
+        // If user scrolls away, stop following
+        $scrollArea.on('scroll', scrollHandler);
+      } else {
+        // Stop following
+        stopObservingLogsForScroll();
+        // Don't care if user scrolls, we're not following anyway
+        $scrollArea.off('scroll', scrollHandler);
+      }
+    }
+  };
+  function scrollHandler() {
+    if ($scrollArea.prop('scrollHeight') > $scrollArea.prop('scrollTop') + $scrollArea.height()) {
+      that.followLogs(false);
+    }
+  }
+  scrollToBottom = _.debounce(function () {
+    if (!that.followLogs()) {
+      return;
+    }
+    $scrollArea.scrollTop($scrollArea.prop('scrollHeight'));
+  }, 100);
+  this.followLogs(true);
 
   // Clusterize takes care of infinite scrolling: it ensures there's only a screenful of logs in the DOM
   clusterize = new Clusterize({
-    scrollId: 'logs-scroll-area',
-    contentId: 'logs-content-area',
+    scrollElem: $scrollArea[0],
+    contentElem: $contentArea[0],
     tag: 'tr'
   });
 

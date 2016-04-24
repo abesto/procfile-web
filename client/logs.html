@@ -22,14 +22,15 @@
             </div>
         {{/each}}
     </div>
-    <div id="logs-scroll-area" class="logs-container clusterize-scroll">
+    <div class="logs-container clusterize-scroll">
         <table class="logs">
-            <tbody id="logs-content-area">
+            <tbody>
             </tbody>
         </table>
     </div>
     <div class="input-group dropup">
         <div class="input-group-btn">
+            <input type="button" class="btn btn-default follow-logs {{followLogsActiveClass}}" value="Follow logs">
             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                 {{ stdinProcess }} <span class="caret"></span>
             </button>
