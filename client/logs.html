@@ -21,17 +21,10 @@
             </div>
         {{/each}}
     </div>
-    <div class="logs-container">
+    <div id="logs-scroll-area" class="logs-container clusterize-scroll">
         <table class="logs">
-            {{#each logs}}
-                {{#if showLogline app channel}}
-                <tr>
-                    <td class="timestamp">{{fmtTimestamp timestamp}}</td>
-                    <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
-                    <td class="message">{{message}}</td>
-                </tr>
-                {{/if}}
-            {{/each}}
+            <tbody id="logs-content-area">
+            </tbody>
         </table>
     </div>
     <div class="input-group dropup">
@@ -47,4 +40,12 @@
         </div>
         <input type="text" id="stdin-txt" class="form-control" autocomplete="off" autofocus>
     </div>
+</template>
+
+<template name="LogLine">
+    <tr>
+        <td class="timestamp">{{fmtTimestamp timestamp}}</td>
+        <td><span class="app">{{app}}</span>/<span class="channel">{{channel}}</span></td>
+        <td class="message">{{message}}</td>
+    </tr>
 </template>

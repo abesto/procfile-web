@@ -6,6 +6,7 @@
   "dependencies": {
     "async": "^2.0.0-rc.3",
     "bootstrap-switch": "^3.3.2",
+    "clusterize.js": "^0.16.0",
     "expand-home-dir": "0.0.3",
     "lodash": "^4.9.0",
     "moment": "^2.12.0",

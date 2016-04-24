@@ -1,3 +1,6 @@
+import 'bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min';
+import 'clusterize.js/clusterize.css';
+
 import { Session } from 'meteor/session';
 import { Template } from 'meteor/templating';
 import { Meteor } from 'meteor/meteor';
@@ -6,6 +9,8 @@ import { _ } from 'meteor/underscore';
 
 import moment from 'moment';
 import 'bootstrap-switch';
+import Clusterize from 'clusterize.js';
+import async from 'async';
 
 import { Process } from '/shared/process';
 import { Proclog } from '/shared/proclog';
@@ -19,7 +24,7 @@ function isLoglineShown(app, channel) {
 }
 
 var scrollLogsToBottom = _.debounce(function() {
-  var $container = $('.logs-container').height($(window).height() - 170);
+  var $container = $('#logs-scroll-area').css('max-height', $(window).height() - 170);
   $container.scrollTop($container.prop('scrollHeight'));
 }, 100);
 
@@ -28,8 +33,10 @@ Template.Logs.helpers({
     if (process.status === 'running') {
       return 'checked';
     }
-  },
+  }
+});
 
+Template.LogLine.helpers({
   fmtTimestamp: function (timestamp) {
     return moment(timestamp).format('HH:mm:ss.SSS');
   },
@@ -106,6 +113,41 @@ Template.Logs.events({
 Template.Logs.onRendered(function () {
   // Keep logs scrolled to bottom
   Proclog.find().observeChanges({added: scrollLogsToBottom});
+
+  // Clusterize takes care of infinite scrolling: it ensures there's only a screenful of logs in the DOM
+  var clusterize = new Clusterize({
+    scrollId: 'logs-scroll-area',
+    contentId: 'logs-content-area',
+    tag: 'tr'
+  });
+
+  var rows = [];
+  function renderRow(log) {
+      return '<tr>' +
+        '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
+        '<td><span class="app">' + log.app + '</span>/<span class="channel">' + log.channel + '</span></td>' +
+        '<td class="message">' + log.message + '</td>' +
+        '</tr>';
+  }
+
+  // async.cargo, with the timeout, throttles the render calls; it collects all the logs that came in within
+  // 100ms, and hands them off to clusterize in a single go, minimizing DOM updates
+  var clusterizeCargo = async.cargo(function (rows, cb) {
+    clusterize.append(rows);
+    setTimeout(cb, 100);
+  });
+
+  Proclog.find().observe({
+    added: function (log) {
+      var rendered = renderRow(log);
+      clusterizeCargo.push(rendered);
+      rows.push(rendered);
+    },
+    changedAt: function (newLog, oldLog, index) {
+      rows[index] = renderRow(newLog);
+      clusterize.update(rows);
+    }
+  });
 
   // Initialize on/off switches
   this.$('.make-switch').each(function () {
