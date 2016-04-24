@@ -16,8 +16,6 @@ import async from 'async';
 import { Process } from '/shared/process';
 import { Proclog } from '/shared/proclog';
 
-var clusterize;
-
 function renderRow(log) {
   return '<tr>' +
     '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
@@ -33,12 +31,6 @@ function hideLogSessionKey(app, channel) {
 function isLoglineShown(log) {
   return !Session.get(hideLogSessionKey(log.app, log.channel));
 }
-
-var rerender = _.debounce(function () {
-  clusterize.update(
-    _(Proclog.find().fetch()).filter(isLoglineShown).map(renderRow)
-  );
-}, 100);
 
 Template.Logs.helpers({
   statusChecked: function (process) {
@@ -107,7 +99,7 @@ Template.Logs.events({
     Session.set(key, !Session.get(key));
 
     // Re-render. Needed due to the way clusterize.js is implemented
-    rerender();
+    Template.instance().rerenderLogs();
   },
 
   'click .set-stdin-process': function (evt) {
@@ -184,7 +176,7 @@ Template.Logs.onRendered(function () {
   this.followLogs(true);
 
   // Clusterize takes care of infinite scrolling: it ensures there's only a screenful of logs in the DOM
-  clusterize = new Clusterize({
+  this.clusterize = new Clusterize({
     scrollElem: $scrollArea[0],
     contentElem: $contentArea[0],
     tag: 'tr'
@@ -193,10 +185,19 @@ Template.Logs.onRendered(function () {
   // async.cargo, with the timeout, throttles the render calls; it collects all the logs that came in within
   // 100ms, and hands them off to clusterize in a single go, minimizing DOM updates
   var clusterizeCargo = async.cargo(function (rows, cb) {
-    clusterize.append(rows);
+    that.clusterize.append(rows);
     setTimeout(cb, 100);
   });
 
+  // Sometimes we need to rerender the whole table from scratch
+  this.rerenderLogs = _.debounce(function () {
+    that.clusterize.update(
+      _(Proclog.find().fetch()).filter(isLoglineShown).map(renderRow)
+    );
+  }, 100);
+
+
+  // Handle incoming logs
   Proclog.find().observe({
     added: function (log) {
       if (!isLoglineShown(log)) {
@@ -207,7 +208,7 @@ Template.Logs.onRendered(function () {
     },
     changed: function () {
       // Re-render. Needed due to the way clusterize.js is implemented
-      rerender();
+      that.rerenderLogs();
     }
   });
 
