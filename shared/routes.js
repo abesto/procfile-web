@@ -11,6 +11,8 @@ Router.configure({
 
 Router.route('/', function () {
   this.redirect('/processes');
+}, {
+  name: 'root'
 });
 
 Router.route('/procfile', {
@@ -24,12 +26,14 @@ Router.route('/procfile', {
       };
     }
   },
-  waitOn: function () { return Meteor.subscribe('procfile'); }
+  waitOn: function () { return Meteor.subscribe('procfile'); },
+  name: 'procfile'
 });
 
 Router.route('/processes', {
   data: function () { return {processes: Process.find()}; },
-  waitOn: function () { return Meteor.subscribe('processes'); }
+  waitOn: function () { return Meteor.subscribe('processes'); },
+  name: 'processes'
 });
 
 Router.route('/logs', {
@@ -45,5 +49,7 @@ Router.route('/logs', {
       Meteor.subscribe('logs'),
       Meteor.subscribe('processes')
     ];
-  }
+  },
+  name: 'logs',
+  fastRender: true
 });
