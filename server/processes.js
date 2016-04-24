@@ -14,6 +14,8 @@ import { recordLog, findLogWithoutNewline, closeLines } from '/server/proclog';
 import { Process } from '/shared/process';
 import { Procfile } from '/shared/procfile';
 
+//Logger.setLevel('trace');
+
 var
   processOpsInProgress = 0,
   childProcesses = {},
@@ -46,7 +48,7 @@ function psTreeUsageSum(rootPid, callback) {
     async.reduce(pids, {memory: 0, cpu: 0}, function (memo, pid, callback) {
       usage.lookup(pid, function (err, data) {
         if (err) {
-          return callback(err);
+          return callback(null, memo);
         }
         callback(null, {
           memory: parseInt(memo.memory, 10) + data.memory,
@@ -75,33 +77,24 @@ function updateProcessStats(cb) {
         psTreeUsageSum(process.pid, Meteor.bindEnvironment(function (usageErr, usageData) {
           var modifier;
           if (psListItem && !usageErr) {
-            modifier = _.extend(
-              {status: 'running', cmd: psListItem.cmd},
+            modifier = {$set: _.extend(
+              {cmd: psListItem.cmd},
               usageData
-            );
+            )};
+            log.trace('updateProcessStats ' + process.name + ' ' + JSON.stringify(modifier));
+            Process.update({_id: process._id}, modifier);
           } else {
-            modifier = {
-              status: 'stopped',
-              pid: null,
-              memory: null,
-              cpu: null,
-              started: null
-            };
+            log.warn('updateProcessStats stopped ' + process.name + ' ' + JSON.stringify(usageErr));
+            markStopped(process.name);
           }
-          modifier = {$set: modifier};
-          log.trace('updateProcessStats ' + process.name + ' ' + JSON.stringify(modifier));
-          if (modifier.$set.status !== process.status) {
-            recordLog('system', 'info', process.name + ' went from ' + process.status + ' to ' + modifier.$set.status);
-          }
-          Process.update({_id: process._id}, modifier);
           cb();
         }));
       }, cb);
   });
 }
 
-function registerProcess(name, pid) {
-  log.info('registerProcess ' + name + ' ' + pid);
+function markRunning(name, pid) {
+  log.info('markRunning ' + name + ' ' + pid);
   Process.upsert(
     {
       name: name
@@ -113,6 +106,18 @@ function registerProcess(name, pid) {
         status: 'running'
       }
     });
+}
+
+function markStopped(name) {
+  log.info('markStopped ' + name);
+  var modifier = { $set: {
+    status: 'stopped',
+    pid: null,
+    memory: null,
+    cpu: null,
+    started: null
+  }};
+  Process.update({name: name}, modifier);
 }
 
 Meteor.setInterval(updateProcessStats, 1000);
@@ -143,7 +148,7 @@ function processOp(name, f) {
     },
     5000
   );
-  f(Meteor.bindEnvironment(function () {
+  f(Meteor.bindEnvironment(function (cb) {
     if (fut.isResolved()) {
       throw 'processOp already resolved ' + name;
     }
@@ -152,6 +157,7 @@ function processOp(name, f) {
     log.trace('processOp done ' + name + ' => '  + processOpsInProgress);
     updateProcessStats(function () {
       fut.return();
+      if (cb) { cb(); }
     });
   }));
   fut.wait();
@@ -185,7 +191,10 @@ Meteor.methods({
         cwd: expandHomeDir('~/.prezi/please')
       });
 
-      recordLog('system', 'info', 'Started ' + name);
+      recordLog('system', 'info', 'Started ' + name + ' (pid ' + childProcess.pid + ')');
+      markRunning(name, childProcess.pid);
+      childProcesses[name] = childProcess;
+
       _(['stdout', 'stderr']).each(function (fdName) {
         function handleData(data) {
           var logWithoutNewline = findLogWithoutNewline(name, fdName);
@@ -210,16 +219,26 @@ Meteor.methods({
         childProcess[fdName].on('data', handleData);
       });
 
-      registerProcess(name, childProcess.pid);
-      childProcesses[name] = childProcess;
-
       childProcess.on('error', Meteor.bindEnvironment(function (err) {
         if (err.code === 'ENOENT') {
           recordLog('system', 'error', 'Binary for ' + name + ' not found at "' + binaryPath + '".');
-          Process.update({name: name}, {$set: {state: 'stopped'}});
+          markStopped(name);
         } else {
           recordLog(name, '', err.toString());
         }
+      }));
+
+      childProcess.on('exit', Meteor.bindEnvironment(function (code, signal) {
+        var msg = name + ' exited';
+        if (code !== null) {
+          msg += ' with code ' + code;
+        }
+        if (signal) {
+          msg += ' (stopped by ' + signal + ')';
+        }
+        recordLog('system', 'info', msg);
+        log.info(msg);
+        markStopped(name);
       }));
 
       done();
@@ -239,6 +258,13 @@ Meteor.methods({
       log.info('process/kill process-not-running ' + name);
       throw new Meteor.Error('not-running', 'Process ' + name + ' is not running.');
     }
+    if (procObj.pid === null) {
+      // This shouldn't  happen. It did happen under a complex bug
+      // Leaving it here, maybe it'll catch something in the future
+      log.warn('process/kill process-pid-null ' + name + ' ' + JSON.stringify(procObj));
+      Process.update({name: name}, {$set: {status: 'stopped'}});
+      return;
+    }
 
     processOp('process/kill ' + name + ' ' + signal, function (done) {
       psTreePids(procObj.pid, function (err, pids) {
@@ -256,7 +282,7 @@ Meteor.methods({
             process.kill(pid, signal);
           } catch(e) {}
         });
-        recordLog('system', 'info', 'Killed ' + name + ' with ' + signal);
+        recordLog('system', 'info', 'Killing ' + name + ' with ' + signal);
         done();
       });
     });
