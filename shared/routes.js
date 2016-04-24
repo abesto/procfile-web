@@ -50,6 +50,5 @@ Router.route('/logs', {
       Meteor.subscribe('processes')
     ];
   },
-  name: 'logs',
-  fastRender: true
+  name: 'logs'
 });
