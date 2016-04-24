@@ -18,7 +18,7 @@ import { Proclog } from '/shared/proclog';
 
 // Avoiding reactive templates here for performance
 function renderRow(log) {
-  return '<tr class="logline ' + log.app + '-' + log.channel + '" data-app="' + log.app + '" data-channel="' + log.channel + '">' +
+  return '<tr class="logline ' + log.app + '-' + log.channel + ' ' + log.app + '" data-app="' + log.app + '" data-channel="' + log.channel + '">' +
     '<td class="timestamp">' +  moment(log.timestamp).format('HH:mm:ss.SSS') + '</td>' +
     '<td><span class="app">' + log.app + '</span>/<span class="channel">' + log.channel + '</span></td>' +
     '<td class="message">' + log.message + '</td>' +
@@ -40,7 +40,8 @@ var trHighlighter = (function () {
   return {
     highlight: function (app, channel) {
       removeHighlight();
-      stylesheet.insertRule('.logline.' + app + '-' + channel + ' { background-color: #151515; }', 0);
+      stylesheet.insertRule('.logline.' + app + '-' + channel + ' { background-color: #222; }', 0);
+      stylesheet.insertRule('.logline.' + app + ' { background-color: #151515; }', 0);
     },
     removeHighlight: removeHighlight
   };
