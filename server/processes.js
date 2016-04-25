@@ -123,7 +123,7 @@ function markStopped(name) {
 Meteor.setInterval(updateProcessStats, 1000);
 
 Meteor.publish('processes', function () {
-  return Process.find();
+  return Process.find({}, {sort: ['name']});
 });
 
 /**
