@@ -1,25 +1,27 @@
-div.process-controls {
-    display: inline-block;
-    margin-bottom: 20px;
+.process-controls {
+    width: 100%;
 
     font-size: .9em;
-    font-family: monospace;
 
-    border: 1px solid silver;
-    border-radius: 20px;
+    .start-process, .stop-process {
+        padding: 5px;
+        width: 30px;
+        height: 30px;
+        border-radius: 20px;
+        border: none;
+    }
+
+    .start-process {
+        color: green;
+    }
+
+    .stop-process {
+        color: red;
+    }
 
     .process-name {
         vertical-align: middle;
-        display: inline-block;
         cursor: pointer;
-    }
-
-    .btn {
-        border-radius: 20px;
-    }
-
-    .bootstrap-switch-wrapper, .bootstrap-switch-container {
-        border-radius: 20px;
     }
 }
 

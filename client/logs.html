@@ -1,45 +1,59 @@
 <template name="Logs">
-    <div class="process-controls-container">
-        {{#each processes}}
-            <div class="process-controls">
-                <form class="form-inline">
-                <input type="checkbox" class="make-switch"
-                       data-process="{{name}}" {{statusChecked this}}
-                       data-size="mini" data-inverse="true"
-                />
-                <div class="process-name">{{name}}</div>
-                <div class="btn-group">
-                    {{#each fdNames}}
-                    <button type="button"
-                            class="channel-filter btn btn-xs btn-default {{channelFilterActiveClass ../name this}}"
-                            data-app="{{../name}}" data-channel="{{this}}">
-                        {{this}}
-                    </button>
-                    {{/each}}
-                </div>
-                </form>
-            </div>
-        {{/each}}
-    </div>
-    <div class="logs-container clusterize-scroll">
-        <table class="logs">
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-    <div class="input-group dropup">
-        <div class="input-group-btn">
-            <input type="button" class="btn btn-default follow-logs {{followLogsActiveClass}}" value="Follow logs">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                {{ stdinProcess }} <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-                {{#each runningProcesses}}
-                    <li><a href="#" class="set-stdin-process">{{name}}</a></li>
-                {{/each}}
-            </ul>
+    <div class="col-md-10">
+        <div class="logs-container clusterize-scroll">
+            <table class="logs">
+                <tbody>
+                </tbody>
+            </table>
         </div>
-        <input type="text" id="stdin-txt" class="form-control" autocomplete="off" autofocus>
+        <div class="input-group dropup">
+            <div class="input-group-btn">
+                <input type="button" class="btn btn-default follow-logs {{followLogsActiveClass}}" value="Follow logs">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    {{ stdinProcess }} <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    {{#each runningProcesses}}
+                        <li><a href="#" class="set-stdin-process">{{name}}</a></li>
+                    {{/each}}
+                </ul>
+            </div>
+            <input type="text" id="stdin-txt" class="form-control" autocomplete="off" autofocus>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="process-controls-container">
+            <table class="process-controls">
+                {{#each processes}}
+                    <tr>
+                        <td>
+                            {{#if running status}}
+                                <div class="btn btn-sm btn-default stop-process">
+                                    <span class="glyphicon glyphicon-off"></span>
+                                </div>
+                            {{else}}
+                                <div class="btn btn-sm btn-default start-process">
+                                    <span class="glyphicon glyphicon-play"></span>
+                                </div>
+                            {{/if}}
+                        </td>
+                        <td class="process-name">{{name}}</td>
+                        <td>
+                            <div class="btn-group channel-filter-container">
+                                {{#each fdNames}}
+                                    <button type="button"
+                                            class="channel-filter btn btn-xs btn-default {{channelFilterActiveClass ../name this}}"
+                                            data-app="{{../name}}" data-channel="{{this}}">
+                                        {{this}}
+                                    </button>
+                                {{/each}}
+                            </div>
+
+                        </td>
+                    </tr>
+                {{/each}}
+            </table>
+        </div>
     </div>
 </template>
 

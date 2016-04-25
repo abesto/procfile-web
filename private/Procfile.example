@@ -1,3 +1,20 @@
-periodic: $$periodic.sh
-spam: $$spam.sh 100
+periodic_1: $$periodic.sh
+periodic_2: $$periodic.sh
+periodic_3: $$periodic.sh
+periodic_4: $$periodic.sh
+periodic_5: $$periodic.sh
+spam_1: $$spam.sh 100
+spam_2: $$spam.sh 100
+spam_3: $$spam.sh 100
+spam_4: $$spam.sh 100
+spam_5: $$spam.sh 100
+spam_6: $$spam.sh 100
+spam_7: $$spam.sh 100
+spam_8: $$spam.sh 100
+spam_9: $$spam.sh 100
+spam_10: $$spam.sh 100
+spam_11: $$spam.sh 100
+spam_12: $$spam.sh 100
+spam_13: $$spam.sh 100
+spam_14: $$spam.sh 100
 echo: $$echo.sh

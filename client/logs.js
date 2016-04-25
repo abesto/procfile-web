@@ -59,12 +59,6 @@ function isLoglineShown(log) {
 var fdNames = ['stdin', 'stdout', 'stderr'];
 
 Template.Logs.helpers({
-  statusChecked: function (process) {
-    if (process.status === 'running') {
-      return 'checked';
-    }
-  },
-
   fdNames: function () {
     return fdNames;
   },
@@ -90,6 +84,10 @@ Template.Logs.helpers({
       Session.set('stdin-process', val);
     }
     return val;
+  },
+
+  running: function(status) {
+    return status === 'running';
   }
 });
 
@@ -110,15 +108,11 @@ Template.Logs.events({
   },
 
   // Start / stop processes
-  'switchChange.bootstrapSwitch .make-switch': function (evt) {
-    var
-      $input = $(evt.target),
-      process = $input.data('process');
-    if ($input.prop('checked')) {
-      Meteor.call('process/start', process);
-    } else {
-      Meteor.call('process/kill', process, 'SIGTERM');
-    }
+  'click .start-process': function () {
+    Meteor.call('process/start', this.name);
+  },
+  'click .stop-process': function () {
+    Meteor.call('process/kill', this.name, 'SIGTERM');
   },
 
   // Filter by channel
@@ -257,19 +251,6 @@ Template.Logs.onRendered(function () {
       // Re-render. Needed due to the way clusterize.js is implemented
       that.rerenderLogs();
     }
-  });
-
-  // Initialize on/off switches
-  this.$('.make-switch').each(function () {
-    var $this = $(this);
-    $this.bootstrapSwitch();
-    Process.find({name: $this.data('process')}).observeChanges({
-      changed: _.debounce(function (_, fields) {
-        if (fields.hasOwnProperty('status')) {
-          $this.bootstrapSwitch('state', fields.status === 'running', true);
-        }
-      }, 100)
-    });
   });
 
   // Re-render on filter changes
