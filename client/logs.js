@@ -42,6 +42,7 @@ var trHighlighter = (function () {
       removeHighlight();
       stylesheet.insertRule('.logline.' + app + '-' + channel + ' { background-color: #222; }', 0);
       stylesheet.insertRule('.logline.' + app + ' { background-color: #151515; }', 0);
+      stylesheet.insertRule('.process-controls-' + app + ' { background-color: #ddd; }', 0);
     },
     removeHighlight: removeHighlight
   };
@@ -61,6 +62,10 @@ var fdNames = ['stdin', 'stdout', 'stderr'];
 Template.Logs.helpers({
   fdNames: function () {
     return fdNames;
+  },
+
+  shortFdName: function (long) {
+    return long.substr(3);
   },
 
   channelFilterActiveClass: function (app, channel) {
@@ -131,12 +136,13 @@ Template.Logs.events({
     Session.set(key, !Session.get(key));
   },
 
-  // Filter by add
-  'click .process-name': function (evt) {
+  // Filter by process
+  'click .process-name-btn': function (evt) {
+    console.log(evt);
     // Hide all channels if any channels are shown. Show all channels if all channels are hidden.
     var
       $target = $(evt.target),
-      app = $target.text(),
+      app = $target.data('app'),
       newValue = !_.every(fdNames, function (name) {
         return !!Session.get(hideLogSessionKey(app, name));
       });
@@ -161,7 +167,25 @@ Template.Logs.events({
     var $el = $(evt.target);
     trHighlighter.highlight($el.data('app'), $el.data('channel'));
   },
-  'mouseleave .logline': trHighlighter.removeHighlight
+  'mouseleave .logline': trHighlighter.removeHighlight,
+  'mouseenter .process-controls tr': function () {
+    trHighlighter.highlight(this.name, null);
+  },
+  'mouseleave .process-controls tr': trHighlighter.removeHighlight,
+  'mouseenter .process-controls .channel-filter': function (evt) {
+    var
+      $btn = $(evt.target),
+      app = $btn.data('app'),
+      channel = $btn.data('channel');
+    trHighlighter.highlight(app, channel);
+  },
+  'mouseleave .process-controls .channel-filter': function (evt) {
+    var
+      $btn = $(evt.target),
+      app = $btn.data('app');
+    trHighlighter.removeHighlight();
+    trHighlighter.highlight(app, null);
+  }
 });
 
 Template.Logs.onCreated(function () {
@@ -171,7 +195,7 @@ Template.Logs.onCreated(function () {
     if (_.isUndefined(arg)) {
       return that.isFollowingLogs.get();
     } else {
-      throw "Can't set followLogs before onRendered event";
+      throw 'Can\'t set followLogs before onRendered event';
     }
   };
 });
