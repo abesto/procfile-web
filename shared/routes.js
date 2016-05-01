@@ -10,7 +10,7 @@ Router.configure({
 });
 
 Router.route('/', function () {
-  this.redirect('/processes');
+  this.redirect('/home');
 }, {
   name: 'root'
 });
@@ -36,7 +36,7 @@ Router.route('/processes', {
   name: 'processes'
 });
 
-Router.route('/logs', {
+Router.route('/home', {
   data: function () {
     return {
       logs: Proclog.find({}),

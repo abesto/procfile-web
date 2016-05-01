@@ -209,7 +209,7 @@ Template.Logs.onRendered(function () {
 
   // Logs scroll area size
   resizeLogsContainer = _.debounce(function () {
-    var targetHeight = $(window).height() - 170;
+    var targetHeight = $(window).height() - 130;
     $scrollArea
       .css('max-height', targetHeight)
       .css('height', targetHeight);
