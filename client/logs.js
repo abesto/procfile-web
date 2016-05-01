@@ -138,17 +138,32 @@ Template.Logs.events({
 
   // Filter by process
   'click .process-name-btn': function (evt) {
-    console.log(evt);
-    // Hide all channels if any channels are shown. Show all channels if all channels are hidden.
     var
       $target = $(evt.target),
       app = $target.data('app'),
-      newValue = !_.every(fdNames, function (name) {
-        return !!Session.get(hideLogSessionKey(app, name));
+      newValue;
+
+    if (!evt.shiftKey) {
+      // Without Shift: hide all channels if any channels are shown. Show all channels if all channels are hidden.
+      newValue = _.every(fdNames, function (name) {
+        return isLoglineShown({app: app, channel: channel});
       });
-    _.forEach(fdNames, function (name) {
-      Session.set(hideLogSessionKey(app, name), newValue);
-    });
+      _.forEach(fdNames, function (name) {
+        Session.set(hideLogSessionKey(app, name), newValue);
+      });
+    } else {
+      // With Shift: Hide logs of all other processes if any are shown. Show every channel of all other process if they're all hidden.
+      newValue = _.every(Process.find({}).fetch(), function (process) {
+        return _.find(fdNames, function (fdName) {
+          return isLoglineShown({app: process.name, channel: fdName});
+        });
+      });
+      Process.find({name: {$not: app}}).forEach(function (process) {
+        _.forEach(fdNames, function (fdName) {
+          Session.set(hideLogSessionKey(process.name, fdName), newValue);
+        });
+      });
+    }
   },
 
   // Follow logs
