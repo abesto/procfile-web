@@ -114,6 +114,12 @@ Template.Logs.events({
   'click .stop-process': function () {
     Meteor.call('process/kill', this.name, 'SIGTERM');
   },
+  'click .start-all': function () {
+    Meteor.call('process/start-all');
+  },
+  'click .kill-all': function () {
+    Meteor.call('process/kill-all');
+  },
 
   // Filter by channel
   'click .channel-filter': function (evt) {
@@ -143,6 +149,11 @@ Template.Logs.events({
   'click .follow-logs': function () {
     var followLogs = Template.instance().followLogs;
     followLogs(!followLogs());
+  },
+
+  // Clear logs
+  'click .clear-logs': function ()  {
+    Meteor.call('logs/clear');
   },
 
   // Highlight logs of the same process
