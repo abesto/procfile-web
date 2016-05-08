@@ -95,7 +95,7 @@ function updateProcessStats(cb) {
 
 function markRunning(name, pid) {
   log.info('markRunning ' + name + ' ' + pid);
-  Process.upsert(
+  Process.update(
     {
       name: name
     }, {
@@ -167,7 +167,7 @@ Meteor.methods({
   'process/start': function(name) {
     var
       processObj = Process.findOne({name: name}), childProcess,
-      procfileEntry = Procfile.findOne({tag: 'current'}).content[name];
+      procfileEntry = Procfile.findOne({tag: 'current'}).entry(name);
 
     log.info('process/start ' + name);
     if (!processObj) {

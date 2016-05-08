@@ -8,7 +8,7 @@ import procfile from 'procfile-parser';
 import expandHomeDir from 'expand-home-dir';
 
 import { Process } from '/shared/process';
-import { Procfile } from '/shared/procfile';
+import { Procfile, ProcfileEntry } from '/shared/procfile';
 
 var log = new Logger('server.procfile');
 
@@ -28,8 +28,7 @@ function loadProcfile(tag) {
     tag: tag,
     path: path,
     loadedAt: new Date(),
-    rawContent: rawContent,
-    content: procfile.parse(rawContent)
+    rawContent: rawContent
   };
 }
 
@@ -37,8 +36,11 @@ Meteor.startup(function () {
   Procfile.remove({tag: 'current'});
   Process.remove({});
 
-  var procfile = loadProcfile('current');
-  _(procfile.content).each(function (spec) {
+  var
+    procfileData = loadProcfile('current'),
+    procfileId = Procfile.insert(procfileData);
+
+  _(procfile.parse(procfileData.rawContent)).each(function (spec) {
     if (spec.cmd.startsWith('$$')) {
       spec.args.unshift(Assets.absoluteFilePath(spec.cmd.substring(2)));
       spec.cmd = 'bash';
@@ -47,9 +49,10 @@ Meteor.startup(function () {
       {name: spec.name},
       {$set: spec}
     );
+    spec.procfileId = procfileId;
+    ProcfileEntry.insert(spec);
   });
 
-  Procfile.insert(procfile);
 
   if (Meteor.settings.startAllProcessesOnBoot) {
     log.info('Starting all processes on boot (settings.startAllProcessesOnBoot)');
@@ -59,4 +62,8 @@ Meteor.startup(function () {
 
 Meteor.publish('procfile', function () {
   return Procfile.find({tag: 'current'});
+});
+
+Meteor.publish('procfile-entry', function () {
+  return Procfile.findOne({tag: 'current'}).entries();
 });

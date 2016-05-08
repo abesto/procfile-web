@@ -28,3 +28,5 @@ standard-minifier-css
 standard-minifier-js
 zeroasterisk:throttle
 jquery
+aldeed:collection2
+dburles:collection-helpers

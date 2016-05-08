@@ -22,11 +22,14 @@ Router.route('/procfile', {
       return {
         path: procfile.path,
         rawContent: procfile.rawContent,
-        content: JSON.stringify(procfile.content, null, 4)
+        content: JSON.stringify(procfile.entries().fetch(), null, 4)
       };
     }
   },
-  waitOn: function () { return Meteor.subscribe('procfile'); },
+  waitOn: function () { return [
+    Meteor.subscribe('procfile'),
+    Meteor.subscribe('procfile-entry')
+  ]; },
   name: 'procfile'
 });
 
