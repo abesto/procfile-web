@@ -146,7 +146,7 @@ Template.Logs.events({
     if (!evt.shiftKey) {
       // Without Shift: hide all channels if any channels are shown. Show all channels if all channels are hidden.
       newValue = _.every(fdNames, function (name) {
-        return isLoglineShown({app: app, channel: channel});
+        return isLoglineShown({app: app, channel: name});
       });
       _.forEach(fdNames, function (name) {
         Session.set(hideLogSessionKey(app, name), newValue);
