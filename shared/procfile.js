@@ -15,7 +15,7 @@ ProcfileEntry.attachSchema(new SimpleSchema({
   procfileId: { type: String },
   cmd: { type: String },
   args: { type: [String] },
-  env: { type: Object, optional: true, defaultValue: null },
+  env: { type: Object, blackbox: true },
   raw: { type: String, optional: true },
   name: { type: String }
 }));

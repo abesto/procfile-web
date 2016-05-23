@@ -33,7 +33,8 @@ function loadProcfile(tag) {
 }
 
 Meteor.startup(function () {
-  Procfile.remove({tag: 'current'});
+  Procfile.remove({});
+  ProcfileEntry.remove({});
   Process.remove({});
 
   var
@@ -47,7 +48,7 @@ Meteor.startup(function () {
     }
     Process.upsert(
       {name: spec.name},
-      {$set: spec}
+      {$set: _.cloneDeep(spec)}
     );
     spec.procfileId = procfileId;
     ProcfileEntry.insert(spec);
